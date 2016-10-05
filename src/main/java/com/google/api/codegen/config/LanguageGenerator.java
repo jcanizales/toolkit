@@ -56,13 +56,13 @@ public class LanguageGenerator {
         new RewriteRule("^cloud(.+)$", "$1"), // Strip "cloud" prefix from API name.
         new RewriteRule("^(.*)$", "google.cloud.gapic.$1")); // Prepend google.cloud.gapic.
     List<RewriteRule> rubyRewriteRules = Arrays.asList(
-        new RewriteRule(componentsMatcher, "$2::$3"), // {api}::{version}
+        new RewriteRule(componentsMatcher, "$2.$3"), // {api}::{version}
         new RewriteRule("^cloud(.+)$", "$1"), // Strip "cloud" prefix from API name.
-        new RewriteRule("^(.*)$", "Google::Cloud::$1")); // Prepend Google::Cloud::.
+        new RewriteRule("^(.*)$", "google.cloud.$1")); // Prepend Google::Cloud::.
     List<RewriteRule> phpRewriteRule = Arrays.asList(
-        new RewriteRule(componentsMatcher, "$2\\$3"), // {api}\{version}
+        new RewriteRule(componentsMatcher, "$2.$3"), // {api}\{version}
         new RewriteRule("^cloud(.+)$", "$1"), // Strip "cloud" prefix from API name.
-        new RewriteRule("^(.*)$", "\\Google\\Cloud\\$1")); // Prepend \Google\Cloud\.
+        new RewriteRule("^(.*)$", "\\\\Google.cloud.$1")); // Prepend \Google\Cloud\.
     LANGUAGE_FORMATTERS =
         ImmutableMap.<String, LanguageFormatter>builder()
             .put("java", new SimpleLanguageFormatter(".", javaRewriteRules, false))
