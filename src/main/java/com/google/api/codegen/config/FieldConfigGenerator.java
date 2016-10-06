@@ -48,23 +48,11 @@ public class FieldConfigGenerator implements MethodConfigGenerator {
 
   @Override
   public Map<String, Object> generate(Method method) {
-    List<String> ignoredFields = Arrays.asList(PARAMETER_PAGE_TOKEN, PARAMETER_PAGE_SIZE);
+    List<String> paginationFields = Arrays.asList(PARAMETER_PAGE_TOKEN, PARAMETER_PAGE_SIZE);
 
-    List<String> parameterList = new LinkedList<String>();
     MessageType message = method.getInputMessage();
-    for (Field field : message.getFields()) {
-      String fieldName = field.getSimpleName();
-      if (!ignoredFields.contains(fieldName)) {
-        parameterList.add(field.getSimpleName());
-      }
-    }
 
     Map<String, Object> result = new LinkedHashMap<String, Object>();
-    if (parameterList.size() > 0) {
-      if (parameterList.size() <= FLATTENING_THRESHOLD) {
-        result.put(CONFIG_KEY_FLATTENING, createFlatteningConfig(parameterList));
-      }
-    }
 
     // Required parameters for this method.
     List<String> requiredParameters = new LinkedList<>();
@@ -75,16 +63,16 @@ public class FieldConfigGenerator implements MethodConfigGenerator {
       // regenerated. Unfortunately there doesn't seem to be an easy way to output comments.
 
       String fieldName = field.getSimpleName();
-      // Ignore pagination parameters.
-      if (ignoredFields.contains(fieldName)) {
+      // Pagination parameters are optional.
+      if (paginationFields.contains(fieldName)) {
         continue;
       }
-      // Ignore boolean fields. Those need always be optional, for requiring one to have a value
-      // other than the default (false) is requiring it to be set to true, which doesn't make sense.
+      // Skip boolean fields. Those need always be optional, for requiring one to have a value other
+      // than the default (false) is requiring it to be set to true, which doesn't make sense.
       if (field.getType().getKind() == Type.TYPE_BOOL && !field.getType().isRepeated()) {
         continue;
       }
-      // Ignore fields whose documentation indicates are optional.
+      // Skip fields whose documentation indicates are optional.
       if (isDescribedAsOptional(DocumentationUtil.getDescription(field))) {
         continue;
       }
@@ -92,14 +80,19 @@ public class FieldConfigGenerator implements MethodConfigGenerator {
     }
     result.put(CONFIG_KEY_REQUIRED_FIELDS, requiredParameters);
 
-    // use all fields for the following check; if there are ignored fields for flattening
-    // purposes, the caller still needs a way to set them (by using the request object method).
-    if (message.getFields().size() > REQUEST_OBJECT_METHOD_THRESHOLD
-        || message.getFields().size() != parameterList.size()) {
-      result.put(CONFIG_KEY_REQUEST_OBJECT_METHOD, true);
-    } else {
-      result.put(CONFIG_KEY_REQUEST_OBJECT_METHOD, false);
+    int numParams = message.getFields().size();
+    int numRequired = requiredParameters.size();
+
+    // Flattened parameters.
+    if (numRequired > 0 && numRequired <= FLATTENING_THRESHOLD) {
+      result.put(CONFIG_KEY_FLATTENING, createFlatteningConfig(requiredParameters));
     }
+
+    // If not all parameters were flattened, the caller needs a way to set them (by using the
+    // request object method).
+    result.put(CONFIG_KEY_REQUEST_OBJECT_METHOD,
+        numParams != numRequired || numParams > REQUEST_OBJECT_METHOD_THRESHOLD);
+
     return result;
   }
 
@@ -107,6 +100,7 @@ public class FieldConfigGenerator implements MethodConfigGenerator {
     Map<String, Object> parameters = new LinkedHashMap<String, Object>();
     parameters.put(CONFIG_KEY_PARAMETERS, parameterList);
 
+    // What's the purpose of flattening groups if we're only ever creating one?
     List<Object> groups = new LinkedList<Object>();
     groups.add(parameters);
 
