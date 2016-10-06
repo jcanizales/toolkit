@@ -98,7 +98,7 @@ public class FieldConfigGenerator implements MethodConfigGenerator {
 
   private Map<String, Object> createFlatteningConfig(List<String> parameterList) {
     Map<String, Object> parameters = new LinkedHashMap<String, Object>();
-    parameters.put(CONFIG_KEY_PARAMETERS, parameterList);
+    parameters.put(CONFIG_KEY_PARAMETERS, new LinkedList(parameterList));
 
     // What's the purpose of flattening groups if we're only ever creating one?
     List<Object> groups = new LinkedList<Object>();
